@@ -12,11 +12,15 @@ def zen_cli():
 
 
 @zen_cli.command()
-def repos():
+@click.argument('username', required=False)
+def repos(username=None):
     git = login(token=os.environ['ZEN'])
 
-    click.echo(f'{git.me().login} owns the following repositories:')
-    for repository in git.repositories_by(git.me().login):
+    if not username:
+        username = git.me().login
+
+    click.echo(f'{username} owns the following repositories:')
+    for repository in git.repositories_by(username):
         click.echo(f'{repository.name}')
 
 
