@@ -1,3 +1,0 @@
-pytest
-github3.py
-click
