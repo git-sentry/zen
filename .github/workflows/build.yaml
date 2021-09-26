@@ -42,7 +42,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          poetry config pypi-token.test-pypi ${{ secrets.TEST_PY_TOKEN }}
+          poetry config repositories.testpypi https://test.pypi.org/simple/
+          poetry config pypi-token.testpypi ${{ secrets.TEST_PY_TOKEN }}
           poetry install --no-interaction --no-root
       - name: Test
         run: |
