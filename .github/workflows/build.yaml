@@ -61,7 +61,6 @@ jobs:
           poetry version $VERSION
           git add pyproject.toml
           git add poetry.lock
-          git add version.json
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
