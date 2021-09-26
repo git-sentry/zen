@@ -45,9 +45,9 @@ jobs:
           poetry config repositories.testpypi https://test.pypi.org/simple/
           poetry config pypi-token.testpypi ${{ secrets.TEST_PY_TOKEN }}
           poetry install --no-interaction --no-root
-      - name: Test
-        run: |
-          poetry run pytest
+#      - name: Test
+#        run: |
+#          poetry run pytest
 
       - name: Tag new version
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
