@@ -1,0 +1,70 @@
+name: Build
+on: [ push, pull_request ]
+
+jobs:
+  version:
+    # Ensure test job passes before pushing image.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    container:
+      image: dragosd2000/versioner:latest
+      volumes:
+        - /home/runner/work/zen:/repo
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Tag version
+        id: tag
+        run: |
+          version_tag=$(versioner)
+          echo "::set-output name=version::$version_tag"
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [version]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9.7
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1.1.6
+        with:
+          version: 1.1.10
+          virtualenvs-create: true
+          virtualenvs-in-project: false
+          virtualenvs-path: ~/.cache/virtualenvs
+
+      - name: Install dependencies
+        run: |
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi ${{ secrets.TEST_PY_TOKEN }}
+          poetry install --no-interaction --no-root
+      - name: Test
+        run: |
+          poetry run pytest
+
+      - name: Tag new version
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          git config --local user.email "versioner-bot@users.noreply.github.com"
+          git config --local user.name "versioner-bot"
+          branch_name=(echo ${GITHUB_REF#refs/heads/})
+          VERSION=${{ needs.version.outputs.version }}
+          echo $VERSION
+          git tag -a $VERSION -m $VERSION
+          poetry version $VERSION
+          git add pyproject.toml
+          git add poetry.lock
+          git add version.json
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.base_ref }}
+          tags: true
