@@ -17,6 +17,8 @@ fuzzyfinder = "^2.1.0"
 simple-term-menu = "^1.4.1"
 fuzzysearch = "^0.7.3"
 
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
 
 [tool.poetry.scripts]
 zen = "zen.main.zen:main"
