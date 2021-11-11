@@ -44,6 +44,7 @@ jobs:
         run: |
           poetry config repositories.testpypi https://test.pypi.org/simple/
           poetry config pypi-token.testpypi ${{ secrets.TEST_PY_TOKEN }}
+          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
           poetry install --no-interaction --no-root
 #      - name: Test
 #        run: |
@@ -67,3 +68,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.base_ref }}
           tags: true
+      - name: Publish
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          poetry publish --build

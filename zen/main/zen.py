@@ -9,6 +9,7 @@ from github3 import login
 from click import pass_context
 from zen_core.handlers.git_client import GitClient
 
+from zen.commands.prs import prs
 from zen.commands.repos import repos
 
 
@@ -77,6 +78,7 @@ def zen_cli(ctx):
 def main():
     git = GitClient()
     zen_cli.add_command(repos)
+    zen_cli.add_command(prs)
     zen_cli(obj={'client': git})
 
 
