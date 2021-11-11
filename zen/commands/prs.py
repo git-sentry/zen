@@ -16,7 +16,7 @@ def prs(ctx):
 def mine(ctx):
     git: GitClient = ctx.obj.get('client')
     prs = git._git_client.search_issues(
-        "is:pr user:gocardless pushed:<2021-08-31 author:dragosdumitrache author:tajoku author:stephenbinns author:gc-carlar author:meronkha author:alfredrichards state:open")
+        "is:pr user:gocardless author:dragosdumitrache author:tajoku author:stephenbinns author:gc-carlar author:meronkha author:alfredrichards state:open created:>2021-08-31")
     # org = git.organization('gocardless')
     pr_navigation = _compute_open_prs(prs)
     navigable_map = []
