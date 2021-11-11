@@ -1,5 +1,9 @@
 [tool.poetry]
 name = "zen-git"
+packages = [
+    {include = "zen"}
+]
+
 version = "0.1.0"
 description = "A git CLI utility tool"
 authors = ["Dragos Dumitrache <dragos@afterburner.dev>"]
