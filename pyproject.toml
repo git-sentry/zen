@@ -10,13 +10,9 @@ authors = ["Dragos Dumitrache <dragos@afterburner.dev>"]
 license = "MIT"
 readme = "README.md"
 
-[[tool.poetry.source]]
-name = "testpypi"
-url = "https://test.pypi.org/simple"
-
 [tool.poetry.dependencies]
 python = "^3.9"
-zen-core="0.2.0"
+zen-core="^0.2.0"
 fuzzyfinder = "^2.1.0"
 simple-term-menu = "^1.4.1"
 fuzzysearch = "^0.7.3"
