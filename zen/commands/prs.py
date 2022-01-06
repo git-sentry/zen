@@ -1,9 +1,20 @@
+import configparser
+import os
 import webbrowser
-from collections import OrderedDict
 
 import click
+import simple_term_menu
 from zen_core.handlers.git_client import GitClient
+from zen_core.handlers.git_repo import GitRepo
 
+QUERY_CONFIG_FILE_PATH = os.path.expanduser('~/.config/sentry/query.ini')
+
+
+def read_query():
+    config_parser = configparser.ConfigParser()
+    config_parser.read(QUERY_CONFIG_FILE_PATH, encoding='utf-8')
+    queries = [(name, query) for name, query in config_parser['queries'].items()]
+    return queries
 
 @click.group()
 @click.pass_context
@@ -12,56 +23,62 @@ def prs(ctx):
 
 
 @prs.command()
+@click.option('-q', '--query')
 @click.pass_context
-def mine(ctx):
+def search(ctx, query=None):
     git: GitClient = ctx.obj.get('client')
-    prs = git._git_client.search_issues(
-        "is:pr user:gocardless author:dragosdumitrache author:tajoku author:stephenbinns author:gc-carlar author:meronkha author:alfredrichards state:open created:>2021-08-31")
-    # org = git.organization('gocardless')
-    pr_navigation = _compute_open_prs(prs)
-    navigable_map = []
-    for org, repos in pr_navigation.items():
-        if len(repos.values()) != 0:
-            click.echo(org)
-        for repo, open_prs in repos.items():
-            click.echo('\t{} open PRs:'.format(repo))
-            for pr in open_prs:
-                click.echo(
-                    '\t\t{}: {} - {}'.format(click.style(len(navigable_map), fg='cyan', bold=True),
-                                             click.style(pr.title, fg='green'), click.style(pr.user.login, fg='yellow')))
-                navigable_map += [pr]
-    #
-    pr_index = None
-    if navigable_map:
-        click.echo(
-            '\nInput the number shown next to a PR to it to open it in your browser or \'q\' to terminate. ')
-        while pr_index != 'q':
-            pr_index = input('PR: ')
-            if pr_index == 'q':
-                break
-            pr_index = int(pr_index)
-            if pr_index > len(navigable_map) or pr_index < 0:
-                click.echo(
-                    'No PR mapped to index {}. Please enter a valid value.'.format(click.style(pr_index, fg='red')))
-            else:
-                pr_to_open = navigable_map[pr_index]
-                pr_url = pr_to_open.html_url
-                webbrowser.open(pr_url)
+    if query is not None:
+        pass
     else:
-        click.echo('No open PRs for the organisations you requested')
-
-
-def _compute_open_prs(prs):
-    pr_navigation = OrderedDict()
-
-    # for org in filtered_orgs:
-    # pr_navigation[org.login()] = OrderedDict()
-    pr_navigation['gocardless'] = OrderedDict()
-    for i in prs:
-        pr = i.issue.pull_request()
-        if pr is not None:
-            name = pr.repository.name
-            if name not in pr_navigation['gocardless']:
-                pr_navigation['gocardless'][name] = []
-            pr_navigation['gocardless'][name].append(pr)
-    return pr_navigation
+        predefined_queries = read_query()
+        queries = [f'{name} - {query}' for name, query in predefined_queries]
+        queries.append('Exit')
+        top_term = simple_term_menu.TerminalMenu(queries)
+        terminal_menu_exit = False
+        while not terminal_menu_exit:
+            os.system('clear')
+            query_index = top_term.show()
+            # query_index = simple_term_menu.TerminalMenu([f'{name} - {query}' for name, query in predefined_queries]).show()
+            if queries[query_index] == 'Exit':
+                terminal_menu_exit = True
+                continue
+            query_name, query_to_run = predefined_queries[query_index]
+            issues = git._git_client.search_issues(query_to_run)
+            repositories = {}
+            for i in issues:
+                pr = i.issue.pull_request()
+                if pr is not None:
+                    repository = GitRepo(pr.repository)
+                    if repository.full_name() not in repositories:
+                        repositories[repository.full_name()] = []
+                    repositories[repository.full_name()].append(pr)
+            repo_choices = list(repositories.keys())
+            repo_choices.append('Back')
+            repo_feed = simple_term_menu.TerminalMenu(repo_choices)
+            feed_menu_back = False
+            while not feed_menu_back:
+                os.system('clear')
+                repo_index = repo_feed.show()
+                if repo_choices[repo_index] == 'Back':
+                    feed_menu_back = True
+                    continue
+                repo = list(repositories.keys())[repo_index]
+                open_prs = repositories[repo]
+                choices = []
+                for pr in open_prs:
+                    description = f'#{pr.number} {pr.title} by {pr.user} {len(list(pr.review_comments()))} ✉'
+                    state = any(r.state != 'APPROVED' for r in pr.reviews())
+                    if state:
+                        description = f'⨯ {description}'
+                    else:
+                        description = f'✓ {description}'
+                    choices.append(description)
+                choices.append('Back')
+                feed_pr_back = False
+                while not feed_pr_back:
+                    pr_index = simple_term_menu.TerminalMenu(choices).show()
+                    if choices[pr_index] == 'Back':
+                        feed_pr_back = True
+                        continue
+                    p = open_prs[pr_index]
+                    webbrowser.open(p.html_url)
